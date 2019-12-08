@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 import signal
+import requests
 
 from flask import Flask, request
 from flask_cors import CORS
@@ -31,25 +32,29 @@ json_result = JsonFormater.json_result
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/api/v1/unidadeExploracao/<int:id>', methods=['GET'])
-def get_unidadeExploracao(id):
+@app.route('/api/v1/testeEnvioSMS', methods=['POST'])
+def testeEnvioSMS():
     global database
-    log_main.info('--> /api/v1/unidadeExploracao/{} [GET]'.format(id))
+    log_main.info('--> /api/v1/testeEnvioSMS [POST]')
     try:
         tkn = request.headers['token_auth']
         if token == tkn:
             try:
-                result = database.query_exec('SELECT * FROM UnidadeExploracao WHERE idUnidadeExploracao = {};'.format(id))
-                if result['State']:
-                    if result['Result']:
-                        return json_result(200, {'state': 'Sucess', 'message': result['Result']})
-                    else:
-                        return json_result(200, {'state': 'Sucess', 'message': 'Id Consultado não existe!'})
+                if request.json.get('token_totalVoice', '') == '' or request.json.get('phone', '') == ''  or request.json.get('message', '') == '':
+                    return json_result(400, {'state': 'error', 'message': 'Parametros invalidos'})
+                url = 'https://api.totalvoice.com.br/sms'
+                headers = {'content-type': 'application/json', 'Accept': 'application/json', 'Access-Token': request.json.get('token_totalVoice')}
+                data = {"numero_destino": request.json.get('phone'), "mensagem": request.json.get('message')}
+                r = requests.post(url, headers=headers, json=data, timeout=60)
+                if r.status_code in [200, 201, 202]:
+                    rjson = r.json()
+                    return json_result(200, {'state': 'Sucess', 'message': rjson})
                 else:
-                    log_main.exception('--> /api/v1/unidadeExploracao/{} [GET]: [{}]'.format(id, result['Result']))
+                    log_main.exception('--> /api/v1/testeEnvioSMS [POST]: [{}]'.format(r))
                     return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
+                return json_result(200, {'state': 'Sucess', 'message': request.json})
             except Exception as e:
-                log_main.exception('--> /api/v1/unidadeExploracao/{} [GET]: [{}]'.format(id, e))
+                log_main.exception('--> /api/v1/testeEnvioSMS [POST]: [{}]'.format(id, e))
                 return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
         return json_result(401, {'state': 'unauthorized', 'message': 'Token Invalido'})
     except:
@@ -98,6 +103,7 @@ def initiate():
         server = WSGIServer(bind_addr=(_host, _port), wsgi_app=app, numthreads=_threads)
         if _ssl_enabled:
             server.ssl_adapter = BuiltinSSLAdapter(_ssl_cert, _ssl_key)
+        log_main.warning('Iniciando flask ...')
         server.start()
 
 
