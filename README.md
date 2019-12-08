@@ -1,7 +1,7 @@
 # projetoEscolaAPI
 
-Python Libs:
+<b>Python Libs:</b><br>
     - python3 -m pip install flask flask_cors requests cheroot
 
-Routes:
+<b>Routes:</b><br>
     [POST] /api/v1/testeEnvioSMS
