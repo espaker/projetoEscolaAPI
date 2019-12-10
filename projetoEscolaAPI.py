@@ -40,7 +40,7 @@ def testeEnvioSMS():
         tkn = request.headers['token_auth']
         if token == tkn:
             try:
-                if request.json.get('token_totalVoice', '') == '' or request.json.get('phone', '') == ''  or request.json.get('message', '') == '':
+                if request.json.get('token_totalVoice', '') == '' or request.json.get('phone', '') == '' or request.json.get('message', '') == '':
                     return json_result(400, {'state': 'error', 'message': 'Parametros invalidos'})
                 url = 'https://api.totalvoice.com.br/sms'
                 headers = {'content-type': 'application/json', 'Accept': 'application/json', 'Access-Token': request.json.get('token_totalVoice')}
@@ -54,7 +54,23 @@ def testeEnvioSMS():
                     return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
                 return json_result(200, {'state': 'Sucess', 'message': request.json})
             except Exception as e:
-                log_main.exception('--> /api/v1/testeEnvioSMS [POST]: [{}]'.format(id, e))
+                log_main.exception('--> /api/v1/testeEnvioSMS [POST]: [{}]'.format(e))
+                return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
+        return json_result(401, {'state': 'unauthorized', 'message': 'Token Invalido'})
+    except:
+        return json_result(401, {'state': 'unauthorized', 'message': 'Token Não Informado'})
+
+@app.route('/api/v1/getDataBaseJson', methods=['GET'])
+def getDataBaseJson():
+    global database
+    log_main.info('--> /api/v1/getDataBaseJson [GET]')
+    try:
+        tkn = request.headers['token_auth']
+        if token == tkn:
+            try:
+                return json_result(200, {'state': 'Sucess', 'message': 'aaaaaa'})
+            except Exception as e:
+                log_main.exception('--> /api/v1/getDataBaseJson [get]: [{}]'.format(e))
                 return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
         return json_result(401, {'state': 'unauthorized', 'message': 'Token Invalido'})
     except:
