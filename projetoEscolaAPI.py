@@ -68,7 +68,10 @@ def getDataBaseJson():
         tkn = request.headers['token_auth']
         if token == tkn:
             try:
-                return json_result(200, {'state': 'Sucess', 'message': 'aaaaaa'})
+                returnData = {"user": database.query_exec('select * from users').get('Result'),
+                              "note": database.query_exec('select * from notes').get('Result')
+                              }
+                return json_result(200, {'state': 'Sucess', 'message': returnData})
             except Exception as e:
                 log_main.exception('--> /api/v1/getDataBaseJson [get]: [{}]'.format(e))
                 return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})

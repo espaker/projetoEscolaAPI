@@ -4,4 +4,5 @@
     - python3 -m pip install flask flask_cors requests cheroot
 
 <b>Routes:</b><br>
-    [POST] /api/v1/testeEnvioSMS
+    [POST] /api/v1/testeEnvioSMS<br>
+    [GET] /api/v1/getDataBaseJson
