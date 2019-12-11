@@ -32,6 +32,31 @@ json_result = JsonFormater.json_result
 app = Flask(__name__)
 CORS(app)
 
+
+def getClasses():
+    global database
+    retunedJson = []
+    for cls in database.query_exec('SELECT * FROM classes;').get('Result'):
+        retunedJson.append({"id": cls.get('Id'), "name": cls.get('name'), "students": getStudents(cls.get('Id'))})
+    return retunedJson
+
+
+def getStudents(classId):
+    global database
+    students = []
+    for student in database.query_exec('SELECT s.id, s.name FROM students s inner join classRelation cr on s.id = cr.StudentId WHERE cr.ClassId = {}'.format(classId)).get('Result'):
+        students.append({"id": student.get("id"), "name": student.get("name"), "parents": getParents(student.get("id"))})
+    return students
+
+
+def getParents(studentId):
+    global database
+    parents = []
+    for parent in database.query_exec('SELECT g.id, g.name, g.phone FROM guardians g inner join guardianRelation gr on g.Id = gr.UserId WHERE gr.StudentId = {}'.format(studentId)).get('Result'):
+        parents.append({"user_id": parent.get("Id"), "name": parent.get("name"), "phone": parent.get("phone")})
+    return parents
+
+
 @app.route('/api/v1/testeEnvioSMS', methods=['POST'])
 def testeEnvioSMS():
     global database
@@ -68,9 +93,11 @@ def getDataBaseJson():
         tkn = request.headers['token_auth']
         if token == tkn:
             try:
-                returnData = {"user": database.query_exec('select * from users').get('Result'),
-                              "note": database.query_exec('select * from notes').get('Result')
+                returnData = {"users": database.query_exec('select * from users').get('Result'),
+                              "notes": database.query_exec('select * from notes').get('Result'),
+                              "classes": getClasses()
                               }
+
                 return json_result(200, {'state': 'Sucess', 'message': returnData})
             except Exception as e:
                 log_main.exception('--> /api/v1/getDataBaseJson [get]: [{}]'.format(e))
