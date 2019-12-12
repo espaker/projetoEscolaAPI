@@ -128,13 +128,13 @@ def sendNote():
                 students = ','.join(map(str, request.json.get('students')))
                 query = 'SELECT g.phone FROM guardians g inner join guardianRelation gr on g.Id = gr.UserId WHERE gr.StudentId in ({})'.format(students)
                 for phone in database.query_exec(query).get('Result'):
-                    message = sms.sendSMS(phone, note, multiSMS=True)
+                    message = sms.sendSMS(phone['phone'], note, multiSMS=True)
                     if not message.get('State'):
-                        log_main.exception('--> /api/v1/sendNote [POST]: [{}]'.format(message.get('Message')))
+                        log_main.debug('--> /api/v1/sendNote [POST]: [{}]'.format(message.get('Message')))
                         return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
                 return json_result(200, {'state': 'Sucess', 'message': message.get('Message')})
             except Exception as e:
-                log_main.exception('--> /api/v1/sendNote [POST]: [{}]'.format(e))
+                log_main.error('--> /api/v1/sendNote [POST]: [{}]'.format(e))
                 return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
         return json_result(401, {'state': 'unauthorized', 'message': 'Token Invalido'})
     except:
@@ -148,8 +148,8 @@ def getDataBaseJson():
         tkn = request.headers['token_auth']
         if token == tkn:
             try:
-                returnData = {"users": database.query_exec('select * from users').get('Result'),
-                              "notes": database.query_exec('select * from notes').get('Result'),
+                returnData = {"users": database.query_exec('select Id as id, Type as role, Name as name, Email as email, Phone as phone, `user`, pass from users').get('Result'),
+                              "notes": database.query_exec('select Id as id, Name as name, description, createdAt from notes').get('Result'),
                               "classes": getClasses()
                               }
 
