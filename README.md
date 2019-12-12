@@ -6,4 +6,4 @@
 <b>Routes:</b><br>
     [POST] /api/v1/testeEnvioSMS<br>
     [GET] /api/v1/getDataBaseJson<br>
-    [GET] /api/v1/getDataBaseJson
+    [GET] /api/v1/sendNote
