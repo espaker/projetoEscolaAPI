@@ -18,6 +18,7 @@ from Classes.RequestFormater import RequestFormatter
 from Classes.Cache_control import CacheControl
 from Classes.JsonWorker import JsonFormater
 from Classes.Database import Database
+from  Classes.SMS import SMS
 
 app_version = '1.0.1'
 
@@ -25,6 +26,7 @@ execute = None
 token = None
 server = None
 database = None
+sms = None
 
 cache_control = CacheControl()
 json_result = JsonFormater.json_result
@@ -73,13 +75,66 @@ def testeEnvioSMS():
                 r = requests.post(url, headers=headers, json=data, timeout=60)
                 if r.status_code in [200, 201, 202]:
                     rjson = r.json()
-                    return json_result(200, {'state': 'Sucess', 'message': rjson})
+                    return json_result(201, {'state': 'Sucess', 'message': rjson})
                 else:
                     log_main.exception('--> /api/v1/testeEnvioSMS [POST]: [{}]'.format(r))
+                    return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
+            except Exception as e:
+                log_main.exception('--> /api/v1/testeEnvioSMS [POST]: [{}]'.format(e))
+                return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
+        return json_result(401, {'state': 'unauthorized', 'message': 'Token Invalido'})
+    except:
+        return json_result(401, {'state': 'unauthorized', 'message': 'Token Não Informado'})
+
+app.route('/api/v1/sendSMS', methods=['POST'])
+def sendSMS():
+    global sms
+    log_main.info('--> /api/v1/sendSMS [POST]')
+    try:
+        tkn = request.headers['token_auth']
+        if token == tkn:
+            try:
+                if request.json.get('token_totalVoice', '') == '' or request.json.get('phone', '') == '' or request.json.get('message', '') == '':
+                    return json_result(400, {'state': 'error', 'message': 'Parametros invalidos'})
+                url = 'https://api.totalvoice.com.br/sms'
+                headers = {'content-type': 'application/json', 'Accept': 'application/json', 'Access-Token': request.json.get('token_totalVoice')}
+                data = {"numero_destino": request.json.get('phone'), "mensagem": request.json.get('message')}
+                r = requests.post(url, headers=headers, json=data, timeout=60)
+                if r.status_code in [200, 201, 202]:
+                    rjson = r.json()
+                    return json_result(200, {'state': 'Sucess', 'message': rjson})
+                else:
+                    log_main.exception('--> /api/v1/sendSMS [POST]: [{}]'.format(r))
                     return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
                 return json_result(200, {'state': 'Sucess', 'message': request.json})
             except Exception as e:
                 log_main.exception('--> /api/v1/testeEnvioSMS [POST]: [{}]'.format(e))
+                return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
+        return json_result(401, {'state': 'unauthorized', 'message': 'Token Invalido'})
+    except:
+        return json_result(401, {'state': 'unauthorized', 'message': 'Token Não Informado'})
+
+@app.route('/api/v1/sendNote', methods=['POST'])
+def sendNote():
+    global database, sms
+    log_main.info('--> /api/v1/sendNote [POST]')
+    try:
+        tkn = request.headers['token_auth']
+        if token == tkn:
+            try:
+                if request.json.get('note', '') == '' or request.json.get('students', '') == '':
+                    return json_result(400, {'state': 'error', 'message': 'Parametros invalidos'})
+                note = database.query_exec('SELECT description FROM notes WHERE Id = {}'.format(request.json.get('note'))).get('Result')[0]['description']
+                students = ','.join(map(str, request.json.get('students')))
+                query = 'SELECT g.phone FROM guardians g inner join guardianRelation gr on g.Id = gr.UserId WHERE gr.StudentId in ({})'.format(students)
+                for phone in database.query_exec(query).get('Result'):
+                    message = sms.sendSMS(phone, note, multiSMS=True)
+                    if not message.get('State'):
+                        log_main.exception('--> /api/v1/sendNote [POST]: [{}]'.format(message.get('Message')))
+                        return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
+                return json_result(200, {'state': 'Sucess', 'message': message.get('Message')})
+            except Exception as e:
+                log_main.exception('--> /api/v1/sendNote [POST]: [{}]'.format(e))
                 return json_result(500, {'state': 'error', 'message': 'Erro Desconhecido'})
         return json_result(401, {'state': 'unauthorized', 'message': 'Token Invalido'})
     except:
@@ -113,9 +168,13 @@ def initiate():
     signal.signal(signal.SIGTERM, finalize)
     signal.signal(signal.SIGINT, finalize)
 
-    global token, database
+    global token, database, sms
 
     token = conf.get('Auth', 'Token', fallback='14acd1c3b2f50c1e7354668f7d0b4057')
+
+    ttvToken = open(os.path.join(workdir, conf.get('Auth', 'TokenTTV', fallback=False)), 'r')
+    sms = SMS(ttvToken.readline())
+    ttvToken.close()
 
     log_main.warning('Iniciando conexão com banco de dados ...')
     try:
