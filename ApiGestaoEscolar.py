@@ -8,6 +8,7 @@ import requests
 
 from flask import Flask, request
 from flask_cors import CORS
+from flask_apidoc import ApiDoc
 from logging.handlers import RotatingFileHandler
 from cheroot.wsgi import Server as WSGIServer
 from cheroot.ssl.builtin import BuiltinSSLAdapter
@@ -18,7 +19,7 @@ from Classes.RequestFormater import RequestFormatter
 from Classes.Cache_control import CacheControl
 from Classes.JsonWorker import JsonFormater
 from Classes.Database import Database
-from  Classes.SMS import SMS
+from Classes.SMS import SMS
 
 app_version = '1.0.1'
 
@@ -32,6 +33,7 @@ cache_control = CacheControl()
 json_result = JsonFormater.json_result
 
 app = Flask(__name__)
+doc = ApiDoc(app=app)
 CORS(app)
 
 
@@ -86,7 +88,8 @@ def testeEnvioSMS():
     except:
         return json_result(401, {'state': 'unauthorized', 'message': 'Token Não Informado'})
 
-app.route('/api/v1/sendSMS', methods=['POST'])
+
+@app.route('/api/v1/sendSMS', methods=['POST'])
 def sendSMS():
     global sms
     log_main.info('--> /api/v1/sendSMS [POST]')
@@ -142,6 +145,16 @@ def sendNote():
 
 @app.route('/api/v1/getDataBaseJson', methods=['GET'])
 def getDataBaseJson():
+    """
+    @api {get} /Data
+    @apiVersion 1.0.1
+    @apiGroup Data
+    @apiSampleRequest /api/v1/getDataBaseJson
+
+    @apiSuccess {Object[]} messages Retorna Json com a vase de dados
+    @apiUse database
+    """
+
     global database
     log_main.info('--> /api/v1/getDataBaseJson [GET]')
     try:

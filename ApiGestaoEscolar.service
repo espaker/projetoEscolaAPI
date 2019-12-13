@@ -1,0 +1,19 @@
+[Unit]
+Description=API Gestao Escolar Tech
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+UMask=0007
+StandardOutput=null
+ExecStart=/etc/bin/python3 <API Dir>/ApiGestaoEscolar.py
+TimeoutStartSec=30
+TimeoutStopSec=60
+StartLimitInterval=0
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
